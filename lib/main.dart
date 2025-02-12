@@ -9,10 +9,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Interactive Dock',
       debugShowCheckedModeBanner: false,
-      home: const MyHomePage(title: 'Sliding Dock'),
+      home: MyHomePage(title: 'Sliding Dock'),
     );
   }
 }
