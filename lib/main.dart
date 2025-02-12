@@ -34,61 +34,117 @@ class _MyHomePageState extends State<MyHomePage> {
     Icons.photo,
   ];
 
-  IconData? draggingItem;
+  // Track the currently dragged item's position
+  Offset? dragPosition;
+  int? draggingIndex; // Track the index of the dragged item
+
+  // GlobalKey to track the container's position
+  final GlobalKey _containerKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Container(
-          height: 80,
-          margin: EdgeInsetsDirectional.symmetric(horizontal: 10),
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Stack(
-            children: items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return AnimatedPositioned(
-                key: ValueKey(item),
-                duration: const Duration(milliseconds: 500),
-                left: index * 60.0,
-                top: 8,
-                curve: Curves.easeInOut,
-                child: DragTarget<IconData>(
-                  onWillAccept: (data) {
-                    if (data != item) {
-                      setState(() {
-                        final fromIndex = items.indexOf(data!);
-                        final toIndex = index;
-                        // Swap items in the list
-                        items.removeAt(fromIndex);
-                        items.insert(toIndex, data);
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            key: _containerKey, // Assign the GlobalKey to the container
+            height: 80,
+            margin: EdgeInsetsDirectional.symmetric(horizontal: 10),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Stack(
+              children: items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
 
-                      });
+                // Calculate the base position of each icon
+                double leftPosition = index * 60.0;
+
+                // Adjust positions only if an icon is being dragged
+                if (draggingIndex != null && dragPosition != null) {
+                  // Get the container's offset relative to the screen
+                  final RenderBox containerRenderBox =
+                  _containerKey.currentContext!.findRenderObject() as RenderBox;
+                  final containerOffset = containerRenderBox.localToGlobal(Offset.zero);
+
+                  // Calculate the local drag position within the container
+                  final localDragPosition = dragPosition! - containerOffset;
+
+                  // Check if the current icon is a neighbor of the dragged icon
+                  if (index == draggingIndex! - 1 || index == draggingIndex! + 1) {
+                    // Move the neighbor inward based on the drag direction
+                    if (localDragPosition.dy < 50) { // Dragged upward
+                      if (index == draggingIndex! - 1) {
+                        // Left neighbor moves slightly to the right
+                        leftPosition += 20;
+                      } else if (index == draggingIndex! + 1) {
+                        // Right neighbor moves slightly to the left
+                        leftPosition -= 20;
+                      }
                     }
-                    return true;
-                  },
-                  builder: (context, candidateData, rejectedData) {
-                    return Draggable<IconData>(
-                      data: item,
-                      feedback: _buildDockItem(item, isDragging: true),
-                      childWhenDragging: Opacity(
-                        opacity: 0.0,
+                  }
+                }
+
+                return AnimatedPositioned(
+                  key: ValueKey(item),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  left: leftPosition,
+                  top: 8,
+                  child: DragTarget<IconData>(
+                    onWillAccept: (data) {
+                      if (data != item) {
+                        setState(() {
+                          final fromIndex = items.indexOf(data!);
+                          final toIndex = index;
+                          // Swap items in the list
+                          items.removeAt(fromIndex);
+                          items.insert(toIndex, data);
+                        });
+                      }
+                      return true;
+                    },
+                    builder: (context, candidateData, rejectedData) {
+                      return Draggable<IconData>(
+                        data: item,
+                        feedback: _buildDockItem(item, isDragging: true),
+                        childWhenDragging: Opacity(
+                          opacity: 0.0,
+                          child: _buildDockItem(item),
+                        ),
                         child: _buildDockItem(item),
-                      ),
-                      child: _buildDockItem(item),
-                    );
-                  },
-                ),
-              );
-            }).toList(),
+                        onDragStarted: () {
+                          // Track the index of the dragged item
+                          setState(() {
+                            draggingIndex = items.indexOf(item);
+                          });
+                        },
+                        onDragUpdate: (details) {
+                          // Update the drag position
+                          setState(() {
+                            dragPosition = details.globalPosition;
+                          });
+                        },
+                        onDragEnd: (details) {
+                          // Reset the drag position and dragging index when dragging ends
+                          setState(() {
+                            dragPosition = null;
+                            draggingIndex = null;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -106,8 +162,6 @@ class _MyHomePageState extends State<MyHomePage> {
             : null,
       ),
       child: Icon(icon, color: Colors.white),
-
-
     );
   }
 }
