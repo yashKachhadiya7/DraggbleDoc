@@ -152,6 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildDockItem(IconData icon, {bool isDragging = false}) {
     return Container(
       width: 48,
+
       height: 48,
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
